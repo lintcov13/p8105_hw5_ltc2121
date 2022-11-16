@@ -147,7 +147,10 @@ Estimate of proportion plot
 
 ```{r}
 hom_df_unnest %>% 
-  mutate()
+  separate(CI, c("low", "high"), "-") %>% 
+  mutate(low = as.numeric(low), 
+         high = as.numeric(high)
+    ci = high - low)
 ggplot() +
   geom_point(aes(x = city_state, y = estimate)) +
   geom_errorbar( aes(x=Species, ymin=mean-ic, ymax=mean+ic), width=0.4, colour="orange", alpha=0.9, size=1.5)
