@@ -33,8 +33,8 @@ Data import and manipulation
 ```{r}
 full_df = 
   tibble(
-    files = list.files("data/"),
-    path = str_c("data/", files)
+    files = list.files("data/prob1/"),
+    path = str_c("data/prob1/", files)
   ) %>% 
   mutate(data = map(path, read_csv)) %>% 
   unnest()
@@ -68,6 +68,7 @@ tidy_df %>%
 ```
 
 This plot suggests high within-subject correlation -- subjects who start above average end up above average, and those that start below average end up below average. Subjects in the control group generally don't change over time, but those in the experiment group increase their outcome in a roughly linear way. 
+
 ## Problem 2
 
 Import raw data and exploration
@@ -82,7 +83,8 @@ hom_df = raw_washp %>%
   group_by(city_state) %>% 
   summarise(total_hom = n(), 
             unsolved_hom = sum(disposition %in% c("Closed without arrest", "Open/No arrest"))) 
-
+hom_df %>% 
+  knitr::kable()
 
 ```
 
@@ -97,32 +99,57 @@ test_res = prop.test(
     x = balti_df %>% pull(unsolved_hom),
     n = balti_df %>% pull(total_hom),
     alternative = c("two.sided"),
-    conf.level = 0.95, correct = TRUE)
+    conf.level = 0.95, 
+    correct = TRUE) %>% 
+  broom::tidy() %>% 
+  mutate(conf.low = round(conf.low, 4),
+         conf.high = round(conf.high, 4),
+    CI = str_c(conf.low, conf.high, sep = "-")) %>% 
+  select(estimate, CI)
 
-test_res = test_res %>% 
-  broom::tidy() 
+```
 
+Making function to estimate the proportion of homicides that are unsolved
 
-mean_and_sd = function(x) {
+```{r}
+hom_prop = function(df) {
   
-  if (!is.numeric(x)) {
-    stop("Z scores only work for numbers")
-  }
-  
-  if (length(x) < 3) {
-    stop("Z scores really only work if you have three or more numbers")
-  }
-  
-  mean_x = mean(x)
-  sd_x = sd(x)
-  
-  tibble(
-    mean = mean_x,
-    sd = sd_x
-  )
-  
+ test_res = prop.test(
+    x = df %>% pull(unsolved_hom),
+    n = df %>% pull(total_hom),
+    alternative = c("two.sided"),
+    conf.level = 0.95, 
+    correct = TRUE) %>% 
+  broom::tidy() %>% 
+  mutate(conf.low = round(conf.low, 4),
+         conf.high = round(conf.high, 4),
+    CI = str_c(conf.low, conf.high, sep = "-")) %>% 
+  select(estimate, CI)
+
 }
-  
 
+```
+
+Mapping function across all cities 
+
+```{r}
+hom_df_nest = 
+  hom_df %>% 
+  nest(data = total_hom:unsolved_hom)
+
+hom_df_unnest = hom_df_nest %>% 
+  mutate(
+    et_CI = map(data, hom_prop)) %>%  
+   unnest(et_CI)
+```
+
+Estimate of proportion plot
+
+```{r}
+hom_df_unnest %>% 
+  mutate()
+ggplot() +
+  geom_point(aes(x = city_state, y = estimate)) +
+  geom_errorbar( aes(x=Species, ymin=mean-ic, ymax=mean+ic), width=0.4, colour="orange", alpha=0.9, size=1.5)
 ```
 
