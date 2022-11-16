@@ -166,3 +166,52 @@ ggplot() +
     y = "Proportion")
 ```
 
+## Problem 3
+
+Making t.test function and testing function
+```{r}
+
+sim_ttest = function(mu) {
+  
+  x = rnorm(n = 30, mean = mu, sd = 5)
+
+  test_results = t.test(x)
+  
+  test_results %>% 
+    broom::tidy() %>% 
+    select(estimate, p.value)
+  
+}
+
+sim_ttest(mu = 0)
+
+```
+
+Simulation 1: mu = 0 for 5000 iterations
+
+```{r}
+sim_res_df_1 = 
+  expand_grid(
+    true_mean = 0,
+    iteration = 1:5000  
+  ) %>% 
+  mutate(
+    estimate_df = map(true_mean, sim_ttest)
+  ) 
+
+```
+
+Simulation 2: mu = {1,2,3,4,5,6} for 5000 iterations
+
+```{r}
+sim_res_df_2 = 
+  expand_grid(
+    true_mean = c(1, 2, 3, 4, 5, 6),
+    iteration = 1:5000  
+  ) %>% 
+  mutate(
+    estimate_df = map(true_mean, sim_ttest)
+  ) 
+
+```
+
