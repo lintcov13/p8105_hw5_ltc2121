@@ -76,7 +76,8 @@ Import raw data and exploration
 ```{r}
 raw_washp = 
   read_csv("data/homicide-data.csv") %>% 
-  mutate(
+  mutate(state = case_when(city == 'Tulsa' ~ 'OK', 
+                           TRUE ~ state),
     city_state = str_c(city, state, sep = ", ")) 
 
 hom_df = raw_washp %>% 
@@ -86,9 +87,12 @@ hom_df = raw_washp %>%
 hom_df %>% 
   knitr::kable()
 
+##############sig fig issue in the inline code ##################
+
 ```
 
-This dataframe contains `r nrow(raw_washp)` rows and `r ncol(raw_washp)` columns. Each row represents an individual criminal homicide. The data includes information from `r raw_washp %>% select(city_state) %>% distinct %>% count` cities across the United States. The reported dates of cases range from `r min(raw_washp$reported_date)` to `r max(raw_washp$reported_date)`. The other key variables include details on victim name, age, race and sex. 
+This dataframe contains `r nrow(raw_washp)` rows and `r ncol(raw_washp)` columns. Each row represents an individual criminal homicide. The data includes information from `r raw_washp %>% select(city_state) %>% distinct %>% count` cities across the United States. The reported dates of cases range from `r min(raw_washp$reported_date)` to `r max(raw_washp$reported_date)`. The other key variables include details on victim name, age, race and sex. Another important notice about the dataframe was that the city Tulsa had been incorrectly matched with the state AK and needed to be corrected to be matched to the state OK. 
+
 
 Making a Baltimore dataframe & prop.test 
 ```{r}
@@ -149,10 +153,16 @@ Estimate of proportion plot
 hom_df_unnest %>% 
   separate(CI, c("low", "high"), "-") %>% 
   mutate(low = as.numeric(low), 
-         high = as.numeric(high)
-    ci = high - low)
+         high = as.numeric(high),
+    ci = high - low, 
+    city_state = fct_reorder(city_state, estimate)) %>% 
 ggplot() +
   geom_point(aes(x = city_state, y = estimate)) +
-  geom_errorbar( aes(x=Species, ymin=mean-ic, ymax=mean+ic), width=0.4, colour="orange", alpha=0.9, size=1.5)
+  geom_errorbar( aes(x = city_state, ymin = estimate - ci, ymax = estimate + ci)) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 6)) +
+   labs(
+    title = "Estimated Proportion of Unsolved Homicides",
+    x = "US City",
+    y = "Proportion")
 ```
 
