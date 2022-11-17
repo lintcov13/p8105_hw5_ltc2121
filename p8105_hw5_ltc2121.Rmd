@@ -199,6 +199,9 @@ sim_res_df_1 =
     estimate_df = map(true_mean, sim_ttest)
   ) 
 
+sim_res_df_1 %>% 
+  unnest(estimate_df) %>% 
+  view()
 ```
 
 Simulation 2: mu = {1,2,3,4,5,6} for 5000 iterations
@@ -213,5 +216,28 @@ sim_res_df_2 =
     estimate_df = map(true_mean, sim_ttest)
   ) 
 
+```
+
+Making first plot to show proportion of proportion of times the null was rejected
+
+```{r}
+plot_1 = 
+  sim_res_df_2 %>% 
+  unnest(estimate_df) %>%
+  mutate(null = if_else(p.value < 0.05, "reject", 
+                        if_else(p.value >= 0.05, "not_reject", NA_character_))) %>% 
+  group_by(true_mean, null) %>%
+  summarise(n = n()) %>%
+  mutate(prop = n / sum(n)) %>% 
+  filter(null == "reject") %>% 
+  ggplot(aes(x = true_mean, y = prop)) +
+  geom_bar(stat = "identity", aes( fill = true_mean)) + 
+    labs(
+    x = "Value of True Mean", 
+    y = "Proportion", 
+    title = "Proportion of Occurances with Rejected Null Hypothesis") +
+  theme(legend.position = "none")
+
+plot_1
 ```
 
