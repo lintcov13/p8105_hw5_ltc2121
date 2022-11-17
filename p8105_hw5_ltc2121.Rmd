@@ -87,11 +87,9 @@ hom_df = raw_washp %>%
 hom_df %>% 
   knitr::kable()
 
-##############sig fig issue in the inline code ##################
-
 ```
 
-This dataframe contains `r nrow(raw_washp)` rows and `r ncol(raw_washp)` columns. Each row represents an individual criminal homicide. The data includes information from `r raw_washp %>% select(city_state) %>% distinct %>% count` cities across the United States. The reported dates of cases range from `r min(raw_washp$reported_date)` to `r max(raw_washp$reported_date)`. The other key variables include details on victim name, age, race and sex. Another important notice about the dataframe was that the city Tulsa had been incorrectly matched with the state AK and needed to be corrected to be matched to the state OK. 
+This dataframe contains `r nrow(raw_washp)` rows and `r ncol(raw_washp)` columns. Each row represents an individual criminal homicide. The data includes information from `r raw_washp %>% select(city_state) %>% distinct %>% count` cities across the United States. The other key variables include details on victim name, age, race and sex. Another important notice about the dataframe was that the city Tulsa had been incorrectly matched with the state AK and needed to be corrected to be matched to the state OK. 
 
 
 Making a Baltimore dataframe & prop.test 
@@ -218,7 +216,7 @@ sim_res_df_2 =
 
 ```
 
-Making first plot to show proportion of proportion of times the null was rejected
+First plot 
 
 ```{r}
 plot_1 = 
@@ -236,8 +234,48 @@ plot_1 =
     x = "Value of True Mean", 
     y = "Proportion", 
     title = "Proportion of Occurances with Rejected Null Hypothesis") +
-  theme(legend.position = "none")
+  theme(legend.position = "none") +
+  scale_x_continuous(breaks = c(1, 2, 3, 4, 5, 6))
 
 plot_1
 ```
 
+There is a relationship shown between effect size and power in the graph that compares the proportion of times that the null hypothesis was rejected between different true mean values. This when mu is increasing while the standard deviation remains unchanged, the effect size is increasing. Statistical power is defines as the probability to correctly reject the null and relies on sample size and effect size. Therefore, an increase in effect size will result in an increase in power. This shown through the increased proportion of times that the null hypothesis was rejected as true mean values increase. 
+
+Second Plot
+
+```{r}
+df1_plot_2 = 
+  sim_res_df_2 %>% 
+  unnest(estimate_df) %>%
+  mutate(null = if_else(p.value < 0.05, "reject", 
+                        if_else(p.value >= 0.05, "not_reject", NA_character_))) %>% 
+  group_by(true_mean) %>%
+  summarise(mean_mu = mean(estimate)) 
+
+df2_plot_2 = 
+  sim_res_df_2 %>% 
+  unnest(estimate_df) %>%
+  mutate(null = if_else(p.value < 0.05, "reject", 
+                        if_else(p.value >= 0.05, "not_reject", NA_character_))) %>% 
+  group_by(true_mean, null) %>%
+  summarise(mean_mu = mean(estimate)) %>%
+  filter(null == "reject") 
+
+plot_2 = 
+  ggplot() +
+  geom_point(df1_plot_2, mapping = aes(x = true_mean, y = mean_mu, color = "blue")) +
+  geom_point(df2_plot_2, mapping = aes(x = true_mean, y = mean_mu, color = "orange")) + 
+  labs(
+    x = "Value of True Mean", 
+    y = "Average Estimate", 
+    title = "Average Estimates of Mu hat for True Mean", 
+    color = "Null Hypothesis Test Results") +
+  scale_color_hue(labels = c("Both", "Only Reject")) +
+  scale_x_continuous(breaks = c(1, 2, 3, 4, 5, 6)) +
+  scale_y_continuous(breaks = c(1, 2, 3, 4, 5, 6))
+
+plot_2
+```
+
+This graph overlays all sample averages with the sample averages of across tests for which the null is rejected for each true mean. It is shown that the sample averages of across tests for which the null is rejected is not  equal to the true mean for lower true mean values. This is because the lower true mean tests had a lower power associated with the estimate results. Therefore the estimates that resulted in a rejection of the null hypothesis from these test were notably different from the true mean value. 
